@@ -1,0 +1,72 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  username              String?   @unique
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Account lockout fields
+  failedLoginAttempts   Int       @default(0)
+  lockoutUntil          DateTime?
+
+  // Email verification fields
+  emailVerificationToken String?   @unique
+  emailVerifiedAt       DateTime?
+
+  links                 Link[]
+  // Profile fields merged into User for simplicity in this migration
+  bio                   String?
+  theme                 String    @default("default")
+
+  @@index([email])
+  @@index([username])
+  @@index([emailVerificationToken])
+  @@index([lockoutUntil])
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  clicks    Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  clickEvents Click[]
+
+  @@index([userId])
+  @@index([userId, position])
+  @@index([isActive])
+  @@index([userId, isActive])
+}
+
+model Click {
+  id        String   @id @default(cuid())
+  linkId    String
+  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  userAgent String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([linkId])
+  @@index([createdAt])
+  @@index([linkId, createdAt])
+}
